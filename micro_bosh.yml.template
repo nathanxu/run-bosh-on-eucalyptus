@@ -1,0 +1,39 @@
+---
+name: eucalyptus
+
+
+logging:
+  level: DEBUG
+
+network:
+  type: dynamic
+  vip: 10.101.0.101
+
+resources:
+  persistent_disk: 8192
+  cloud_properties:
+    instance_type: m1.small
+    availability_zone: cluster01  #change to you default zone
+
+cloud:
+  plugin: aws
+  properties:
+    aws:
+      access_key_id: WI4IYWHFITFGTA7KWFXVO   #change it to your access key
+      secret_access_key: A9uJ4v0p2pxiF7YnD6wwe7I9qKTCA1nMFatd5HJE  #change it to your secret key
+      ec2_endpoint:  10.101.1.32   #change it to your CLC IP
+      region: "eucalyptus"
+      default_key_name: mykey   #change it to your CLC
+      default_security_groups: ["default"]  
+      ec2_private_key: /home/vcap/.ssh/microbosh.pem #change it to the directory of your keypair file path
+      service_path: "/services/Eucalyptus"
+
+apply_spec:
+  agent:
+    blobstore:
+      address: 10.101.0.101  #change it as the elastic IP you assign to the micro bosh
+    nats:
+      address: 10.101.0.101  #change it as the elastic IP you assign to the micro bosh
+  properties:
+    aws_registry:
+    address: 10.101.0.101    #change it as the elastic IP you assign to the micro bosh

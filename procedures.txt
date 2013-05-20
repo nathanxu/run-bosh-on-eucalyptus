@@ -1,0 +1,89 @@
+Steps overview.
+
+1. Download Ubuntu 12.04 LTS (ubuntu-12.04.2-server-amd64.iso) from ubuntu offical site.
+
+2. Prepare Intception VM.
+   
+   a. use the download ubuntu ISO to make a EMI.
+   b. start the vm instace with the EMI and login into VM, to run 
+      below command 
+      
+      # mkdir /var/vcap 
+      # cd /var/vcap
+      # git clone https://github.com/nathanxu/run-bosh-on-eucalyptus.git helper 
+      # cd helper
+      # chmod +x prepare_inception.sh & ./prepare_inception.sh 
+   c. veryfied the micro bosh:
+      #bosh micro help
+
+   
+3. parepare the micro bosh stemcell.
+   
+   # cd /var/vcap/bootstrap/bosh
+   # export UBUNTU_ISO=/xxx/xxx/ubuntu-12.04.2-server-amd64.iso  #( full path of the ubuntu iso)
+
+   # rake stemcell:micro["aws"]  
+
+   if very thing is ok, stemcell tarball will be generated to tmp directory /tmp/bosh/xxxxx/work/work/micro-bosh-stemcell-aws-1.5.0.pre.3.tgz
+   
+4. manually register the micro bosh stemcell to eucalyptus.
+
+   # tar vxzf micro-bosh-stemcell-aws-1.5.0.pre.3.tgz
+   # tar vzxf image
+   normally, a file name "root.img" is extracted, this is a eucalyptus EBS image file. you can create a volume (2G) and attach it to the inception VM. 
+   then copy the content f root.img to the attached volume. then create the snapshot of this volume and register it as EBS image. 
+
+5. deploy the micro bosh
+
+   # cp /var/vcap/helper/micro-bosh.yml.template /var/vcap/deployments/eucalyptus/micro-bosh.yml
+
+   edit the file and replace the cloud properties as the value in your environment.
+ 
+   # bosh micro deployment eucalyptus
+   # bosh deploy emi-xxxxx (the micro-bosh image)
+
+   if everything is ok, you will have a micro bosh VM deployed on eucalyptus, to verify the micro bosh:
+
+   # bosh login  (setup the user account)
+   # bosh target xx.xx.xx.xx (the micro bosh ip)
+
+
+6. prepare bosh stemcell
+
+   # cd /var/vcap/bosh
+   # rake stemcell:basic["aws"]
+
+   if very thing is ok, stemcell tarball will be generated to tmp directory /tmp/bosh/xxxxx/work/work/bosh-stemcell-aws-1.5.0.pre.3.tgz
+
+7. upload the bosh stemcell
+
+   # bosh upload stemcell /tmp/bosh/xxxxx/work/work/bosh-stemcell-aws-1.5.0.pre.3.tgz
+
+8. prepare the bosh release
+
+   # cd /var/vcap/bootstrap/bosh/release
+   # rm -rf dev_release
+   # rm -f config/dev.yml
+   # bosh create release --with-tarball --force
+
+   input "bosh" when propmt for input the name of the release.
+
+   bosh release tarball "bosh-13.1-dev.tgz" will be generated in directory "dev_release"
+
+9. upload the bosh release
+
+   # bosh upload release /var/vcap/bootstrap/bosh/release/dev_release/bosh-13.1-dev.tgz
+
+10. prepare the bosh deployment file.
+
+   # cp /var/vcap/helper/bosh-vip.yml.template /var/vcap/deployments/bosh-vip.yml
+
+   replace the cloud properties as the value in your environment.
+
+   # bosh deployment bosh-vip.yml.template
+
+11. deploy the bosh 
+
+   # bosh deploy.
+
+
