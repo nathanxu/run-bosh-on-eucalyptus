@@ -12,7 +12,7 @@ network:
 resources:
   persistent_disk: 8192
   cloud_properties:
-    instance_type: m1.small
+    instance_type: m1.xlarge
     availability_zone: cluster01  #change to you default zone
 
 cloud:
