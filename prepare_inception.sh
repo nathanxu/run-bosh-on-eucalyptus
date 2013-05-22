@@ -56,9 +56,9 @@ else
   curl -L get.rvm.io | bash -s stable
   source /etc/profile.d/rvm.sh
 fi
-command rvm install 1.9.3 # oh god this takes a long time
-rvm 1.9.3
-rvm alias create default 1.9.3
+command rvm install 1.9.3-p327 # oh god this takes a long time
+rvm 1.9.3-p327
+rvm alias create default 1.9.3-p327
 gem install bundler fog --no-ri --no-rdoc
 
 mkdir -p /var/vcap/bootstrap
