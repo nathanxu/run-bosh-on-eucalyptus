@@ -1,0 +1,317 @@
+---
+name: cf-eucalyptus
+director_uuid: 83749bdf-39df-475e-9ccc-d4ae9366897b # CHANGE: Director UUID
+
+releases:
+- name: appcloud
+  version: latest
+
+compilation:
+  workers: 3
+  network: default
+  reuse_compilation_vms: true
+  cloud_properties:
+    instance_type: m1.small
+
+update:
+  canaries: 1
+  canary_watch_time: 3000-90000
+  update_watch_time: 3000-90000
+  max_in_flight: 4
+  max_errors: 1
+
+networks:
+- name: elastic
+  type: vip
+  cloud_properties: {}
+- name: default
+  type: dynamic
+  cloud_properties:
+    security_groups:
+      - default # CHANGE: Security Group
+        
+resource_pools:
+- name: small
+  network: default
+  size: 2
+  stemcell:
+    name: bosh-stemcell
+    version: latest
+  cloud_properties:
+    instance_type: m1.small
+  env:
+    bosh:
+      # password generated using mkpasswd -m sha-512
+      password: $6$leYJSesP$fPm2lwx4Pw/5ZmafFH3h0sMjnMhdH02uC4K7Te0Bu48YhS7o3PFxfsv.V/is.Ty29Ol1j2lvWLcMiE99AvoMy/
+      
+jobs:
+
+- name: cloud_controller_ng
+  release: appcloud
+  template: cloud_controller_ng
+  instances: 1
+  resource_pool: small
+  networks:
+  - name: default
+    default: [dns, gateway]
+  - name: elastic
+    static_ips:
+    - 10.101.0.112
+- name: router
+  release: appcloud
+  template: gorouter
+  instances: 1
+  resource_pool: small
+  networks:
+  - name: default
+    default: [dns, gateway]
+  - name: elastic
+    static_ips:
+    - 10.101.0.113
+
+
+properties:
+  domain: eucalyptus-systems.com
+  system_domain: eucalyptus-systems.com
+  system_domain_organization: eucalyptus-systems.com
+  app_domains: 
+    - eucalyptus-systems.com
+    
+  networks:
+    apps: default
+    management: default
+
+  nats:
+    user: nats
+    password: asdfasdfasdf
+    address: 10.101.0.103
+    port: 4222
+    authorization_timeout: 5  # AWS is slow
+
+  ccdb:
+    address: 10.101.0.104
+    port: 12345
+    roles:
+    - tag: admin
+      name: a-ccdb-user-name
+      password: a-ccdb-password
+    databases: 
+    - tag: cc
+      name: foobar
+
+  ccdb_ng:
+    address: 10.101.0.104
+    port: 5524
+    pool_size: 10
+    roles:
+    - tag: admin
+      name: ccadmin
+      password: asdfasdf80456
+    databases:
+    - tag: cc
+      name: appcloud
+      citext: true
+  uaadb:
+    db_scheme: mysql
+    address: 10.101.0.105
+    port: 3306
+    roles:
+    - tag: admin
+      name: root
+      password: asdfsadf9089089345
+    databases:
+    - tag: uaa
+      name: uaa
+      
+  cc_api_version: v2   
+
+  cc: &cc
+    srv_api_uri: https://ccng.eucalyptus-systems.com
+    external_host: ccng
+    logging_level: debug
+    bulk_api_password: asdfjklhsadfhljkfas
+    uaa_resource_id: cloud_controller
+    staging_upload_user: jkfgjkfg
+    staging_upload_password: lfgklfgfg
+    max_staging_runtime: 900
+    resource_pool:
+      minimum_size: 65536
+      resource_directory_key: eucalyptus-systems-com-cc-resources
+      fog_connection:
+        provider: AWS
+        aws_access_key_id: WI4IYWHFITFGTA7KWFXVO
+        aws_secret_access_key: A9uJ4v0p2pxiF7YnD6wwe7I9qKTCA1nMFatd5HJE
+    packages:
+      minimum_size: 1048576
+      app_package_directory_key: eucalyptus-systems-com-cc-resources
+      fog_connection:
+        provider: AWS
+        aws_access_key_id: WI4IYWHFITFGTA7KWFXVO
+        aws_secret_access_key: A9uJ4v0p2pxiF7YnD6wwe7I9qKTCA1nMFatd5HJE
+    droplets:
+      minimum_size: 1048576
+      droplet_directory_key: eucalyptus-systems-com-cc-droplets
+      fog_connection:
+        provider: AWS
+        aws_access_key_id: WI4IYWHFITFGTA7KWFXVO
+        aws_secret_access_key: A9uJ4v0p2pxiF7YnD6wwe7I9qKTCA1nMFatd5HJE
+    cc_partition: default
+    quota_definitions:
+      free:
+        memory_limit: 0
+        total_services: 0
+      paid:
+        memory_limit: 10240
+        total_services: -1
+      runaway:
+        memory_limit: 102400
+        total_services: -1
+    stacks:
+    - name: lucid64
+      description: "Ubuntu 10.04"
+    - name: lucid64custom
+      description: "Fake Ubuntu 10.04"
+      db_encryption_key: WI4IYWHFITFGTA7KWFXVO
+
+  ccng: *cc
+  router:
+    port: 8081
+    status:
+      port: 8080
+      user: 0dfg0dfg0dfg
+      password: kdfgkdfgkdfgdfg4
+      
+  dea:
+    max_memory: 4096
+    
+  dea_next:
+    memory_mb: 8192
+    memory_overcommit_factor: 4
+    disk_mb: 16384
+    disk_overcommit_factor: 4
+    num_instances: 256
+
+
+  service_lifecycle:
+    serialization_data_server:
+    - 169.254.1.1   # fake, unused but needed by ccng job
+
+
+  login:
+    protocol: https
+    links:
+      home: https://console.eucalyptus-systems.com
+      passwd: https://console.eucalyptus-systems.com/password_resets/new
+      signup: https://console.eucalyptus-systems.com/register
+
+
+  uaa:
+    catalina_opts: -Xmx768m -XX:MaxPermSize=256m
+    url: http://uaa.cf.your.domain.com
+    resource_id: account_manager
+    client_secret: somesecret
+    token_secret: tokensecret
+    no_ssl: false
+    jwt:
+      signing_key: asdfasdfasdfadfs
+      verification_key: w4ydbsbJUetdrgdsg
+    cc:
+      token_secret: asdfasdfasdfadfs
+      client_secret: asdfasdfasdffth
+    admin:
+      client_secret: erthth45ydbgaerg
+    login:
+      client_secret: 457dgnsrgw457sdg
+    batch:
+      username: sdfgjwetrysdgf
+      password: 235dshsbsdgssd
+    client:
+      override: true
+      autoapprove:
+        - vmc
+        - my
+        - portal
+        - micro
+        - support-signon
+        - login
+    clients:
+      dashboard:
+        secret: w4ydbsbJUetdrgdsg
+        scope: openid,dashboard.user
+        authorities: uaa.admin,uaa.resource,tokens.read,scim.read,scim.write
+        authorized-grant-types: client_credentials,authorization_code,refresh_token
+      portal:
+        override: true
+        id: portal
+        scope: scim.write,scim.read,openid,cloud_controller.read,cloud_controller.write
+        authorities: scim.write,scim.read,openid,cloud_controller.read,cloud_controller.write,password.write,uaa.admin
+        secret: portalsecret
+        authorized-grant-types: authorization_code,client_credentials,password,implicit
+        access-token-validity: 1209600
+        refresh-token-validity: 1209600
+      support-services:
+        scope: scim.write,scim.read,openid,cloud_controller.read,cloud_controller.write
+        secret: ssosecretsso
+        id: support-services
+        authorized-grant-types: authorization_code,client_credentials
+        redirect-uri: http://support-signon.cf.eucalyptus-systems.com
+        authorities: portal.users.read
+        access-token-validity: 1209600
+        refresh-token-validity: 1209600
+      vmc:
+        override: true
+        authorized-grant-types: implicit
+        authorities: uaa.none
+        redirect-uri: http://uaa.cloudfoundry.com/redirect/vmc,https://uaa.cloudfoundry.com/redirect/vmc
+        scope: cloud_controller.read,cloud_controller.write,openid,password.write,cloud_controller.admin,scim.read,scim.write
+    scim:
+      users:
+      - your-admin@your-org.com|your-admin-password|scim.write,scim.read,openid,cloud_controller.admin
+      - dash-user|dash-password|openid,dashboard.user
+      
+  collector:
+    use_tsdb: false
+    use_aws_cloudwatch: false
+    use_datadog: true
+    datadog_api_key: 1234567
+    datadog_application_key: 123456
+    deployment_name: cf-eucalyptus
+    
+  health_manager_ccng:
+    shadow_mode: disable
+    cc_partition: ng
+
+  vcap_redis:
+    address: 10.101.0.106
+    port: 5454
+    password: jkfgkjfgjkfgjkfgjk
+    maxmemory: 2000000000 # 2GB
+
+  dashboard:
+    uaa:
+      client_id: dashboard
+      client_secret: 0dfgmsfgngrioger
+    users:
+      - [dash-user, dash-password]
+  
+  syslog_aggregator:
+    address: 10.10.16.10
+    port: 54321
+    log_email:
+      enabled: true
+      from_email: admin@eucalyptus-systems.com
+      from_password: 123456
+      to_email:
+      - cfpi-backend@googlegroups.com
+      - cfpi-services@googlegroups.com
+      smtp_server: smtp.gmail.com
+      smtp_port: 587
+      smtp_domain: gmail.com
+
+  serialization_data_server:  # fake, unused but needed by ccng job
+    upload_token: 123456
+    use_nginx: true
+    upload_timeout: 10
+    port: 8080
+    upload_file_expire_time: 600
+    purge_expired_interval: 30    
